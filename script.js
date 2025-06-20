@@ -3,37 +3,33 @@ const puzzlePiecesContainer = document.getElementById('puzzlePiecesContainer');
 const resetButton = document.getElementById('resetButton');
 const timerDisplay = document.getElementById('timerDisplay');
 
-// --- NUEVO: Elementos del Modal ---
 const successModal = document.getElementById('successModal');
 const modalTitle = document.getElementById('modalTitle');
 const modalMessage = document.getElementById('modalMessage');
 const closeButton = document.querySelector('.close-button');
 const modalResetButton = document.getElementById('modalResetButton');
-// --- FIN NUEVO ---
 
 // --- Configuración del rompecabezas para 4x5 piezas con imagen de 738x398 ---
 const IMAGE_SRC = 'images/puzzle_image.jpg'; // Ruta a tu imagen de 738x398px
 const NUM_COLS = 4; // 4 columnas
 const NUM_ROWS = 5; // 5 filas
 
-const PIECE_WIDTH = 738 / NUM_COLS; // Ancho de cada pieza: 738 / 4 = 184.5px
-const PIECE_HEIGHT = 398 / NUM_ROWS; // Alto de cada pieza: 398 / 5 = 79.6px
+// Las dimensiones de la imagen original (se usará para calcular porcentajes de fondo)
+const ORIGINAL_IMAGE_WIDTH = 738;
+const ORIGINAL_IMAGE_HEIGHT = 398;
 
 let puzzlePieces = [];
 let puzzleSlots = [];
 let draggedPiece = null;
 let isGameStarted = false;
 
-// Variables para el cronómetro
 let startTime; 
 let timerInterval; 
 
 // --- Función para inicializar el juego ---
 async function initializeGame() {
-    // Ocultar el modal si está visible
     successModal.style.display = 'none';
 
-    // Cargar la imagen primero para obtener sus dimensiones reales
     const img = new Image();
     img.src = IMAGE_SRC;
     await new Promise((resolve, reject) => {
@@ -45,11 +41,12 @@ async function initializeGame() {
         };
     });
 
-    // Ajustar el tamaño del tablero dinámicamente
-    puzzleBoard.style.gridTemplateColumns = `repeat(${NUM_COLS}, ${PIECE_WIDTH}px)`;
-    puzzleBoard.style.gridTemplateRows = `repeat(${NUM_ROWS}, ${PIECE_HEIGHT}px)`;
-    puzzleBoard.style.width = `${NUM_COLS * PIECE_WIDTH}px`;
-    puzzleBoard.style.height = `${NUM_ROWS * PIECE_HEIGHT}px`;
+    // --- CAMBIO: Usar 'fr' para hacer el grid responsivo ---
+    puzzleBoard.style.gridTemplateColumns = `repeat(${NUM_COLS}, 1fr)`;
+    puzzleBoard.style.gridTemplateRows = `repeat(${NUM_ROWS}, 1fr)`;
+    // --- Ya no necesitamos width/height en JS, el CSS se encarga con aspect-ratio ---
+    // puzzleBoard.style.width = `${ORIGINAL_IMAGE_WIDTH}px`;
+    // puzzleBoard.style.height = `${ORIGINAL_IMAGE_HEIGHT}px`;
 
     puzzlePiecesContainer.innerHTML = '';
     puzzleBoard.innerHTML = '';
@@ -59,7 +56,6 @@ async function initializeGame() {
     draggedPiece = null;
     isGameStarted = false;
 
-    // Detener y reiniciar el cronómetro
     clearInterval(timerInterval);
     timerDisplay.textContent = '00:00';
     startTime = null; 
@@ -70,7 +66,6 @@ async function initializeGame() {
         slot.classList.add('puzzle-piece-slot');
         slot.dataset.slotId = i;
         slot.dataset.currentPieceId = 'none';
-        // Remover la clase 'correct-piece' al reiniciar
         slot.classList.remove('correct-piece'); 
         puzzleBoard.appendChild(slot);
         puzzleSlots.push(slot);
@@ -87,19 +82,31 @@ async function initializeGame() {
         piece.draggable = true;
         piece.dataset.pieceId = i;
 
-        // Remover la clase 'fixed' al reiniciar
         piece.classList.remove('fixed'); 
 
         const col = i % NUM_COLS;
         const row = Math.floor(i / NUM_COLS);
-        const bgPosX = -(col * PIECE_WIDTH);
-        const bgPosY = -(row * PIECE_HEIGHT);
+        
+        // --- CAMBIO CLAVE: Posicionamiento de fondo en porcentajes ---
+        // background-size: ${NUM_COLS * 100}% ${NUM_ROWS * 100}%
+        // Esto estira la imagen de fondo para cubrir todo el espacio de la cuadrícula
+        // (es decir, el ancho de la imagen es 4 veces el ancho de una pieza, y el alto es 5 veces el alto de una pieza).
+        // Si la imagen es de 738x398, y una pieza es 1/4 de ancho y 1/5 de alto,
+        // entonces el tamaño total de fondo para cada pieza debe ser 400% x 500% del tamaño de la pieza.
+        piece.style.backgroundSize = `${NUM_COLS * 100}% ${NUM_ROWS * 100}%`;
 
-        piece.style.width = `${PIECE_WIDTH}px`;
-        piece.style.height = `${PIECE_HEIGHT}px`;
+        // background-position: -col*100/NUM_COLS % -row*100/NUM_ROWS %
+        // Esto mueve el fondo para mostrar la porción correcta.
+        const bgPosX = -(col * 100 / NUM_COLS);
+        const bgPosY = -(row * 100 / NUM_ROWS);
+        piece.style.backgroundPosition = `${bgPosX}% ${bgPosY}%`;
+
+        // --- Ya no necesitamos width/height aquí, el CSS con 100% y grid se encarga ---
+        // piece.style.width = `${PIECE_WIDTH}px`;
+        // piece.style.height = `${PIECE_HEIGHT}px`;
+
         piece.style.backgroundImage = `url(${IMAGE_SRC})`;
-        piece.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
-        piece.style.backgroundSize = `${NUM_COLS * PIECE_WIDTH}px ${NUM_ROWS * PIECE_HEIGHT}px`;
+        piece.style.backgroundRepeat = 'no-repeat'; // Asegurarse de que no se repita
 
         puzzlePieces.push(piece);
         
@@ -107,22 +114,20 @@ async function initializeGame() {
         piece.addEventListener('dragend', dragEnd);
     }
 
-    // 3. Mezclar las piezas y añadirlas al contenedor de piezas
     shuffleArray(puzzlePieces);
     puzzlePieces.forEach(piece => {
         puzzlePiecesContainer.appendChild(piece);
     });
 }
 
-// --- Función para mezclar un array (Algoritmo Fisher-Yates) ---
+// --- Resto del código (sin cambios significativos) ---
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
-
-// --- Eventos de arrastre (Drag & Drop) ---
 
 function dragStart(e) {
     if (!isGameStarted) {
@@ -193,7 +198,6 @@ function drop(e) {
     }
 }
 
-// --- Función para verificar la condición de victoria ---
 function checkWinCondition() {
     let allInPlace = true;
     for (let i = 0; i < puzzleSlots.length; i++) {
@@ -205,22 +209,18 @@ function checkWinCondition() {
     }
 
     if (allInPlace) {
-        clearInterval(timerInterval); // Detener el cronómetro
+        clearInterval(timerInterval);
 
-        // Asegurarse de que todas las piezas estén fijas y no arrastrables al final
         puzzlePieces.forEach(piece => {
             piece.classList.add('fixed');
             piece.draggable = false;
         });
 
-        // --- NUEVO: Mostrar el modal de felicitaciones ---
         modalMessage.textContent = `¡Has resuelto el rompecabezas en ${timerDisplay.textContent}!`;
-        successModal.style.display = 'flex'; // Mostrar el modal
-        // --- FIN NUEVO ---
+        successModal.style.display = 'flex';
     }
 }
 
-// --- Función para actualizar el cronómetro ---
 function updateTimer() {
     const elapsedTime = Date.now() - startTime; 
     const totalSeconds = Math.floor(elapsedTime / 1000);
@@ -233,21 +233,17 @@ function updateTimer() {
     timerDisplay.textContent = `${formattedMinutes}:${formattedSeconds}`;
 }
 
-// --- Event listeners para los botones de reiniciar y cerrar modal ---
 resetButton.addEventListener('click', initializeGame);
-modalResetButton.addEventListener('click', initializeGame); // Reiniciar desde el modal
+modalResetButton.addEventListener('click', initializeGame);
 
-// Cierra el modal cuando se hace clic en la 'x'
 closeButton.addEventListener('click', () => {
     successModal.style.display = 'none';
 });
 
-// Cierra el modal si el usuario hace clic fuera del contenido del modal
 window.addEventListener('click', (event) => {
     if (event.target === successModal) {
         successModal.style.display = 'none';
     }
 });
 
-// --- Iniciar el juego cuando la página carga ---
 document.addEventListener('DOMContentLoaded', initializeGame);
