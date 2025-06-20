@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Rompecabezas</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Arma el Rompecabezas</h1>
+
+    <div class="stats-container">
+        <p>Tiempo: <span id="timerDisplay">00:00</span></p>
+    </div>
+
+    <div class="puzzle-container">
+        <div class="puzzle-board" id="puzzleBoard">
+            </div>
+        <div class="puzzle-pieces-container" id="puzzlePiecesContainer">
+            </div>
+    </div>
+
+    <button id="resetButton">Reiniciar Rompecabezas</button>
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modalTitle">¡Felicidades!</h2>
+            <p id="modalMessage"></p>
+            <button id="modalResetButton" class="modal-reset-button">Jugar de Nuevo</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
